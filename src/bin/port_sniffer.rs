@@ -7,7 +7,7 @@ use std::{
     thread, vec,
 };
 
-/// 多线程扫描目标端口
+/// 多线程扫描目标地址, 找出开放的端口
 fn main() {
     // let args = std::env::args().collect::<Vec<String>>();
     //or
@@ -49,19 +49,26 @@ const PORT_MAX: u16 = 65535;
 fn scan(sender: Sender<u16>, port_start: u16, ip_addr: IpAddr, threads: u16) {
     let mut port = port_start + 1;
     loop {
+        // 尝试连接目标地址
         match TcpStream::connect((ip_addr, port)) {
+            // 嗅探成功
             Ok(_) => {
+                // 打印一个点
                 print!(".");
                 std::io::stdout().flush().unwrap();
+                // 将端口号发送到 channel
                 sender.send(port).unwrap();
             }
+            // 嗅探失败
             Err(_) => {}
         }
 
+        // 若剩余的端口个数比线程个数还少, 结束嗅探循环
         if PORT_MAX - port <= threads {
             break;
         }
 
+        // 因为有 多个 thread 同时嗅探, 所以循环每次会步进 thread 的个数
         port += threads;
     }
 }
